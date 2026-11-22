@@ -210,12 +210,14 @@ def cmd_calc(a):
 def cmd_try(a):
     xml = pobcode.load(a.source)
     actions = [{"type": "item", "slot": a.slot, "text": _read_item_text(s)} for s in a.item or []]
+    actions += [{"type": "unique", "slot": a.slot, "name": u} for u in a.unique or []]
     if a.unequip:
         actions.append({"type": "unequip", "slot": a.slot})
     if not actions:
-        raise SystemExit("give --item (text, file or -) and/or --unequip")
+        raise SystemExit("give --item (text, file or -), --unique NAME and/or --unequip")
     res = pobcalc.run(xml, actions=actions)
-    labels = [f"item {n}" for n in range(1, len(a.item or []) + 1)] + (["unequip"] if a.unequip else [])
+    labels = [f"item {n}" for n in range(1, len(a.item or []) + 1)] + list(a.unique or []) \
+        + (["unequip"] if a.unequip else [])
     for label, r in zip(labels, res["actions"]):
         name = f" ({r['name']})" if r.get("name") else ""
         print(f"- {label}{name}: {r.get('error') or pobcalc.delta_line(res['base'], r['stats'])}")
@@ -250,6 +252,22 @@ def cmd_gems(a):
 
 def cmd_tree(a):
     xml = pobcode.load(a.source)
+    if a.nodes:
+        b = buildmod.parse_build(xml)
+        tree = _tree_for(b, None) or {"nodes": {}}
+        by_name = {n["name"].lower(): int(i) for i, n in tree["nodes"].items() if not n.get("ascendancy")}
+        combos = []
+        for combo in a.nodes:
+            names = [s.strip() for s in combo.split("+") if s.strip()]
+            missing = [s for s in names if s.lower() not in by_name]
+            if missing:
+                raise ValueError(f"unknown node(s): {', '.join(missing)}")
+            combos.append({"type": "node", "ids": [by_name[s.lower()] for s in names]})
+        res = pobcalc.run(xml, actions=combos)
+        for r in res["actions"]:
+            label = f"{r.get('name', '?')} ({r.get('points', '?')}p)"
+            print(f"- {label}: {r.get('error') or pobcalc.delta_line(res['base'], r['stats'])}")
+        return
     res = pobcalc.run(xml, actions=[{"type": "tree_power", "max_path": a.max_path, "include_allocated": True}])
     act = res["actions"][0]
     if "error" in act:
@@ -353,6 +371,7 @@ def main(argv: list[str] | None = None) -> int:
     s.add_argument("source", help=src_help)
     s.add_argument("--slot", required=True, help="e.g. Helmet, 'Ring 1', 'Weapon 1'")
     s.add_argument("--item", action="append", help="item text (in-game Ctrl+C or PoB format), file, or -")
+    s.add_argument("--unique", action="append", help="a unique from PoB's database by name, e.g. Svalinn")
     s.add_argument("--unequip", action="store_true", help="also show the effect of an empty slot")
     s.set_defaults(func=cmd_try)
 
@@ -367,6 +386,7 @@ def main(argv: list[str] | None = None) -> int:
     s.add_argument("source", help=src_help)
     s.add_argument("--max-path", type=int, default=5, help="max points to reach a node (default 5)")
     s.add_argument("--top", type=int, default=10)
+    s.add_argument("--nodes", action="append", help="evaluate allocating these together: 'Sanctuary + Safeguard'")
     s.set_defaults(func=cmd_tree)
 
     a = p.parse_args(argv)

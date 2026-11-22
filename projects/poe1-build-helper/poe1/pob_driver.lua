@@ -163,12 +163,41 @@ end
 
 for i, act in ipairs(req.actions or {}) do
   local ok, res = pcall(function()
-    if act.type == "node" then
+    if act.type == "node" and act.ids then
+      -- allocate several unallocated nodes together (union of their paths)
+      local set, n, names = {}, 0, {}
+      for _, id in ipairs(act.ids) do
+        local node = build.spec.nodes[id]
+        if not node then error("unknown node id " .. tostring(id)) end
+        if not node.alloc then
+          if not node.path or #node.path == 0 then error(node.dn .. " is not reachable") end
+          for _, p in ipairs(node.path) do
+            if not set[p] then set[p] = true; n = n + 1 end
+          end
+        end
+        names[#names + 1] = node.dn
+      end
+      return { stats = pick(calcFunc({ addNodes = set })), name = table.concat(names, " + "), points = n }
+    elseif act.type == "node" then
       local node = build.spec.nodes[act.id]
       if not node then error("unknown node id " .. tostring(act.id)) end
       local out, points = nodeDelta(node)
       if not out then error("node is not reachable") end
       return { stats = pick(out), name = node.dn, points = points, allocated = node.alloc and true or false }
+    elseif act.type == "unique" then
+      -- a unique from PoB's database by name ("Svalinn" or "Svalinn, Girded Tower Shield")
+      local db = main.uniqueDB.list
+      local entry = db[act.name]
+      if not entry then
+        for key, it in pairs(db) do
+          if key:lower():find("^" .. act.name:lower():gsub("%p", "%%%0") .. ",") then entry = it; break end
+        end
+      end
+      if not entry then error("unique not found: " .. act.name) end
+      local item = new("Item"):Item(entry.raw)
+      item:NormaliseQuality()
+      item:BuildModList()
+      return { stats = pick(calcFunc({ repSlotName = act.slot, repItem = item })), name = item.name }
     elseif act.type == "tree_power" then
       local maxPath = act.max_path or 5
       local list = {}
