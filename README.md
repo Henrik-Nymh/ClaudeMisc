@@ -24,4 +24,6 @@ det kjøres og hvilken status det har.
 
 ## Prosjekter
 
-_Ingen ennå._
+| Prosjekt | Hva | Status |
+| --- | --- | --- |
+| [poe1-build-helper](projects/poe1-build-helper/) | Analyse av Path of Exile 1-builds fra PoB-koder: oppsummering, trade-søk etter oppgraderinger, sammenligning med andres builds | under arbeid |

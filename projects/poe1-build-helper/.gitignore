@@ -1,0 +1,4 @@
+# Downloaded game data (rebuilt by `python3 -m poe1 data`)
+.cache/
+# Personal builds/codes you don't want public
+builds/

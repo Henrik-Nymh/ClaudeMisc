@@ -48,4 +48,15 @@ scratch/           local throwaway space, gitignored
 Durable facts worth knowing in every future session go here (environment
 quirks, gotchas, decisions and why). Keep each one to a line or two.
 
-- _(none yet)_
+- Cloud sessions use the personal "ClaudeMisc" environment, which allows
+  www.pathofexile.com, poe.ninja and pobb.in. GitHub (incl. raw) is always reachable.
+- pathofexile.com APIs (trade, character-window) return 403 from cloud IPs.
+  Don't probe repeatedly: GGG restricts clients with many 4xx responses. Live
+  trade has to run on the owner's machine.
+- poe.ninja: the public API lives under `/poe1/api/...` (the old `/api/data/...`
+  paths return 404). HTML pages sit behind a Cloudflare JS challenge. Builds,
+  profile and character endpoints are internal per its docs, so don't call them.
+- Auto mode refuses spoofing a browser User-Agent, and refuses running
+  downloaded third-party code (e.g. PoB's Lua) without the owner's OK. Ask, don't work around it.
+- Path of Building's repo is the best machine-readable PoE1 data source (tree,
+  trade stats, mods, gems as Lua tables). `poe1/luadata.py` parses them safely.
