@@ -63,3 +63,6 @@ quirks, gotchas, decisions and why). Keep each one to a line or two.
 - Headless PoB works (the owner approved running it): `projects/poe1-build-helper/setup-pob.sh`,
   then `python3 -m poe1 calc|try|gems|tree`. Stock LuaJIT needs our driver's fixes
   (compound `+=` rewrite, FFI zlib Inflate). Construct objects as `new("Item"):Item(text)`.
+- PoB numbers depend heavily on each build's Config tab. Before comparing builds
+  or judging gem swaps, check the config (e.g. `usePowerCharges`). Swap one build's
+  `<Config>` into the other for a fair comparison.

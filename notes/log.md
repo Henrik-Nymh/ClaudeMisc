@@ -9,7 +9,12 @@ date, what was done, what's left.
   `pobcalc.py`, `whatif.py`) and the `calc`, `try`, `gems`, `tree` commands, plus
   `trade item --live --calc`. Verified against the owner's build: 41/41 stats match.
 - The owner plays Hierophant mana-stacking Shock Nova of Procession (Covens) and
-  is following a poe.ninja character. Waiting for that character's PoB export to `compare`.
+  is following a poe.ninja character (PoB code received, kept in scratch only).
+- Key finding: the owner's PoB config is nearly empty (no power charges, shock, etc.),
+  so DPS reads 5.5M vs 30M with the reference's config. Always compare with the
+  same config. Biggest gaps: Svalinn + block nodes (EHP), Ravenous Passion and
+  Greater Spell Echo (DPS).
+- Next: add a `compare --calc` that recalculates both builds with one config.
 
 ## 2026-11-22: poe1-build-helper
 
