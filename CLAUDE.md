@@ -60,3 +60,6 @@ quirks, gotchas, decisions and why). Keep each one to a line or two.
   downloaded third-party code (e.g. PoB's Lua) without the owner's OK. Ask, don't work around it.
 - Path of Building's repo is the best machine-readable PoE1 data source (tree,
   trade stats, mods, gems as Lua tables). `poe1/luadata.py` parses them safely.
+- Headless PoB works (the owner approved running it): `projects/poe1-build-helper/setup-pob.sh`,
+  then `python3 -m poe1 calc|try|gems|tree`. Stock LuaJIT needs our driver's fixes
+  (compound `+=` rewrite, FFI zlib Inflate). Construct objects as `new("Item"):Item(text)`.

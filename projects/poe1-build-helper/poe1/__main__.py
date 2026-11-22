@@ -9,7 +9,7 @@ import re
 import sys
 
 from . import build as buildmod
-from . import compare, gamedata, pobcode, summary, trade
+from . import compare, gamedata, pobcalc, pobcode, summary, trade, whatif
 
 DEFAULT_LEAGUE = os.environ.get("POE1_LEAGUE", "Standard")
 
@@ -138,8 +138,18 @@ def _emit(q: trade.Query, index: trade.StatIndex, a, mapping=None) -> None:
         client = trade.TradeClient(a.league, a.realm, os.environ.get("POESESSID"))
         items, total, qid = client.search(q, a.limit)
         print(f"\n{total} listings match; showing {len(items)} (query id {qid}):")
-        for entry in items:
-            print("\n".join(trade.format_listing(entry)))
+        deltas: list[str | None] = [None] * len(items)
+        calc_src, calc_slot = getattr(a, "calc_source", None), getattr(a, "slot", None)
+        if calc_src and calc_slot and items:
+            actions = [{"type": "item", "slot": calc_slot, "text": whatif.listing_to_item_text(e.get("item", {}))}
+                       for e in items]
+            res = pobcalc.run(pobcode.load(calc_src), actions=actions)
+            deltas = [r.get("error") or pobcalc.delta_line(res["base"], r["stats"]) for r in res["actions"]]
+        for entry, delta in zip(items, deltas):
+            lines = trade.format_listing(entry)
+            if delta:
+                lines.insert(1, f"    => PoB: {delta}")
+            print("\n".join(lines))
 
 
 def cmd_trade_query(a):
@@ -168,8 +178,83 @@ def cmd_trade_item(a):
     q, mapping = trade.query_from_item(item, a.slot, index, scale=a.scale, same_base=a.same_base,
                                        include_crafted=a.include_crafted, include_implicits=a.implicits)
     _common_query_opts(q, a)
+    a.calc_source = a.source if a.calc else None
     print(f"Current {a.slot}: {item.title}\n")
     _emit(q, index, a, mapping)
+
+
+def _read_item_text(spec: str) -> str:
+    if spec == "-":
+        return sys.stdin.read()
+    if os.path.isfile(spec):
+        with open(spec, encoding="utf-8") as f:
+            return f.read()
+    return spec.replace("\\n", "\n")
+
+
+def cmd_calc(a):
+    xml = pobcode.load(a.source)
+    res = pobcalc.run(xml)
+    b = buildmod.parse_build(xml)
+    if res["unresolved_gems"]:
+        print("Unresolved gems: " + ", ".join(res["unresolved_gems"]))
+    print(f"{'stat':34}{'headless PoB':>16}{'in export':>16}")
+    for k in pobcalc.DEFAULT_STATS:
+        h, e = res["base"].get(k), b.stats.get(k)
+        if h is None and e is None:
+            continue
+        flag = "" if e is None or h is None or abs(h - e) <= max(1e-6, abs(e) * 0.005) else "  <- differs"
+        print(f"{k:34}{'-' if h is None else f'{h:,.2f}':>16}{'-' if e is None else f'{e:,.2f}':>16}{flag}")
+
+
+def cmd_try(a):
+    xml = pobcode.load(a.source)
+    actions = [{"type": "item", "slot": a.slot, "text": _read_item_text(s)} for s in a.item or []]
+    if a.unequip:
+        actions.append({"type": "unequip", "slot": a.slot})
+    if not actions:
+        raise SystemExit("give --item (text, file or -) and/or --unequip")
+    res = pobcalc.run(xml, actions=actions)
+    labels = [f"item {n}" for n in range(1, len(a.item or []) + 1)] + (["unequip"] if a.unequip else [])
+    for label, r in zip(labels, res["actions"]):
+        name = f" ({r['name']})" if r.get("name") else ""
+        print(f"- {label}{name}: {r.get('error') or pobcalc.delta_line(res['base'], r['stats'])}")
+
+
+def cmd_gems(a):
+    xml = pobcode.load(a.source)
+    main = buildmod.parse_build(xml).main_group
+    variants, failed = [], []
+    for c in a.change:
+        try:
+            variants.append((c, pobcalc.apply_gem_change(xml, c, main)))
+        except ValueError as e:
+            failed.append(f"- {c}: error: {e}")
+    if a.combine and len(a.change) > 1:
+        try:
+            combined = xml
+            for c in a.change:
+                combined = pobcalc.apply_gem_change(combined, c, main)
+            variants.append(("all combined", combined))
+        except ValueError as e:
+            failed.append(f"- all combined: error: {e}")
+    if failed:
+        print("\n".join(failed))
+    if not variants:
+        return
+    res = pobcalc.run(xml, variants=variants)
+    for v in res["variants"]:
+        warn = f"  [unresolved gems: {', '.join(v['unresolved_gems'])}]" if v.get("unresolved_gems") else ""
+        print(f"- {v['label']}: {v.get('error') or pobcalc.delta_line(res['base'], v['stats'])}{warn}")
+
+
+def cmd_tree(a):
+    xml = pobcode.load(a.source)
+    res = pobcalc.run(xml, actions=[{"type": "tree_power", "max_path": a.max_path, "include_allocated": True}])
+    act = res["actions"][0]
+    if "error" in act:
+        raise RuntimeError(act["error"])
+    print("\n".join(whatif.tree_report(res["base"], act["nodes"], a.top)))
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -256,13 +341,38 @@ def main(argv: list[str] | None = None) -> int:
     s.add_argument("--same-base", action="store_true", help="restrict to the same base type (and implicits)")
     s.add_argument("--implicits", action="store_true", help="include implicit mods")
     s.add_argument("--include-crafted", action="store_true", help="include crafted mods")
+    s.add_argument("--calc", action="store_true", help="with --live: rate each listing with headless PoB")
     add_trade_opts(s)
     s.set_defaults(func=cmd_trade_item)
+
+    s = sub.add_parser("calc", help="recalculate the build with headless PoB (checks against export)")
+    s.add_argument("source", help=src_help)
+    s.set_defaults(func=cmd_calc)
+
+    s = sub.add_parser("try", help="DPS/EHP change from swapping in an item (headless PoB)")
+    s.add_argument("source", help=src_help)
+    s.add_argument("--slot", required=True, help="e.g. Helmet, 'Ring 1', 'Weapon 1'")
+    s.add_argument("--item", action="append", help="item text (in-game Ctrl+C or PoB format), file, or -")
+    s.add_argument("--unequip", action="store_true", help="also show the effect of an empty slot")
+    s.set_defaults(func=cmd_try)
+
+    s = sub.add_parser("gems", help="DPS/EHP change from gem changes (headless PoB)")
+    s.add_argument("source", help=src_help)
+    s.add_argument("--change", action="append", required=True,
+                   help="swap:main:Old=New@20/20 | add:3:New@20/0 | remove:main:Old (group index as in summary)")
+    s.add_argument("--combine", action="store_true", help="also evaluate all changes together")
+    s.set_defaults(func=cmd_gems)
+
+    s = sub.add_parser("tree", help="value of nearby notables/keystones and of allocated ones (headless PoB)")
+    s.add_argument("source", help=src_help)
+    s.add_argument("--max-path", type=int, default=5, help="max points to reach a node (default 5)")
+    s.add_argument("--top", type=int, default=10)
+    s.set_defaults(func=cmd_tree)
 
     a = p.parse_args(argv)
     try:
         a.func(a)
-    except (pobcode.PobCodeError, LookupError, RuntimeError, ValueError) as e:
+    except (pobcode.PobCodeError, LookupError, RuntimeError, ValueError, pobcalc.PobUnavailable) as e:
         print(f"error: {e}", file=sys.stderr)
         return 1
     return 0

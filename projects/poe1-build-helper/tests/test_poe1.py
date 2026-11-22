@@ -5,10 +5,11 @@ from __future__ import annotations
 import base64
 import gzip
 import json
+import shutil
 import unittest
 import urllib.parse
 
-from poe1 import build, compare, luadata, pobcode, summary, trade
+from poe1 import build, compare, luadata, pobcalc, pobcode, summary, trade, whatif
 
 ITEM_RARE = """
 Rarity: RARE
@@ -232,6 +233,47 @@ class TradeTest(unittest.TestCase):
         rl = trade.RateLimiter()
         rl.after({"x-rate-limit-rules": "Ip", "x-rate-limit-ip": "5:10:60", "x-rate-limit-ip-state": "4:10:0"})
         self.assertGreater(rl.wait_until, 0)
+
+
+class WhatIfTest(unittest.TestCase):
+    def test_gem_swap_add_remove(self):
+        main = build.parse_build(BUILD_XML).main_group
+        x = pobcalc.apply_gem_change(BUILD_XML, "swap:main:Minion Damage=Spell Echo@19/5", main)
+        gems = [(g.name, g.level, g.quality) for g in build.parse_build(x).skills[0].gems]
+        self.assertEqual(gems, [("Raise Spectre", 21, 20), ("Spell Echo", 19, 5)])
+        x = pobcalc.apply_gem_change(BUILD_XML, "add:2:Enlighten@3", main)
+        self.assertEqual([g.name for g in build.parse_build(x).skills[1].gems], ["Hatred", "Enlighten"])
+        x = pobcalc.apply_gem_change(BUILD_XML, "remove:1:minion damage", main)
+        self.assertEqual(len(build.parse_build(x).skills[0].gems), 1)
+        with self.assertRaises(ValueError):
+            pobcalc.apply_gem_change(BUILD_XML, "swap:main:Nope=X", main)
+
+    def test_listing_to_item_text(self):
+        listing = {
+            "frameType": 2, "name": "Grim Grip", "typeLine": "Infiltrator Mitts", "ilvl": 84,
+            "properties": [{"name": "Quality", "values": [["+20%", 1]]}],
+            "sockets": [{"group": 0, "sColour": "B"}, {"group": 0, "sColour": "G"}, {"group": 1, "sColour": "R"}],
+            "influences": {"hunter": True}, "implicitMods": ["+10 to Intelligence"],
+            "enchantMods": ["Enchant line"], "explicitMods": ["+90 to maximum Life"],
+            "craftedMods": ["+20% to Fire Resistance"], "corrupted": True,
+        }
+        text = whatif.listing_to_item_text(listing)
+        item = build.parse_item("x", text)
+        self.assertEqual((item.rarity, item.name, item.base), ("RARE", "Grim Grip", "Infiltrator Mitts"))
+        self.assertEqual(item.props["Sockets"], "B-G R")
+        self.assertEqual(item.influences, ["Hunter"])
+        self.assertEqual([m.text for m in item.implicits], ["Enchant line", "+10 to Intelligence"])
+        self.assertEqual(item.explicits[1].tags, ["crafted"])
+        self.assertEqual(item.flags, ["Corrupted"])
+
+
+@unittest.skipUnless(shutil.which("luajit") and (pobcalc.pob_dir() / "src" / "HeadlessWrapper.lua").exists(),
+                     "headless PoB not set up (./setup-pob.sh)")
+class HeadlessPobTest(unittest.TestCase):
+    def test_loads_and_evaluates_actions(self):
+        res = pobcalc.run(BUILD_XML, actions=[{"type": "unequip", "slot": "Helmet"}])
+        self.assertIn("Life", res["base"])
+        self.assertIn("stats", res["actions"][0])
 
 
 class NinjaTest(unittest.TestCase):

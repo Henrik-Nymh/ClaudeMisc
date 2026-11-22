@@ -53,7 +53,36 @@ python3 -m poe1 data                                    # refresh cached game da
 ```
 
 Set `POE1_LEAGUE=Covens` to skip `--league`. Run the tests with
-`python3 -m unittest discover -s tests`.
+`python3 -m unittest discover -s tests`. The headless test is skipped if PoB is
+not set up.
+
+### Exact numbers with headless Path of Building
+
+`./setup-pob.sh` installs LuaJIT and luautf8 (apt or brew), and fetches PoB's
+Lua sources into `.cache/pob`. It skips images, so it needs about 550 MB, and
+takes about 20 s. Rerun it to update PoB. After that:
+
+```bash
+python3 -m poe1 calc build.txt                      # recalculate; flags stats that differ from the export
+python3 -m poe1 try build.txt --slot Helmet --item helmet.txt --unequip
+python3 -m poe1 gems build.txt --change "swap:main:Power Charge On Critical=Inspiration@20/20" \
+    --change "add:3:Enlighten@3/0" --combine
+python3 -m poe1 tree build.txt --max-path 5         # DPS/EHP per point of nearby notables, weakest allocated
+python3 -m poe1 trade item build.txt --slot Gloves --live --calc   # rank live listings by PoB delta
+```
+
+Item text can be in-game Ctrl+C text or PoB's format, given as a file, `-`, or
+inline with `\n`. Gem groups are numbered as in `summary` (or use `main`).
+Results have been checked against PoB's own export: all 41 tracked stats match.
+
+How it works: `poe1/pob_driver.lua` runs PoB's `HeadlessWrapper.lua` and uses
+PoB's item, node and gem comparison calculator. It fixes two gaps in stock
+headless mode:
+
+- **zlib:** a real `Inflate` via LuaJIT FFI and the system zlib, needed for
+  timeless jewel data.
+- **Compound assignment:** PoB's runtime understands `x += 1` and `s ..= t`,
+  stock LuaJIT does not. Files that fail to compile are rewritten line by line.
 
 ### Live trade results (`--live`)
 
@@ -84,11 +113,13 @@ listings. Notes on that:
   used, because the weapon category is not known.
 - **poe.ninja:** its builds, profile and character endpoints are internal and
   not for third-party use, according to its API docs. So `similar` only builds
-  a link to open in a browser. The filter parameter names (`class`, `skills`)
-  are unverified, because the site blocks automated fetches. If the filter
-  doesn't apply, take the URL from the address bar after filtering by hand,
-  and fix `ninja_builds_url`.
-- **Not done yet:** exact DPS/EHP deltas for a candidate item. That needs
-  running PoB headless (LuaJIT + PoB source). It works technically, but is not
-  set up, because it means running downloaded third-party code.
+  a link to open in a browser. `class=` is confirmed from a real URL;
+  `skills=` is still a guess. If the filter doesn't apply, take the URL from
+  the address bar after filtering by hand, and fix `ninja_builds_url`. To
+  compare with a character on poe.ninja, use its Path of Building export
+  button and pass that code to `compare`.
+- **Headless caveats:** PoB uses the build's own config (charges, boss,
+  buffs). A change that only removes a source of charges, such as dropping
+  Power Charge On Critical, still counts the charges as up if the config says
+  so. Sanity-check those cases.
 - The trade link format (gzip + base64url in the path) is the one PoB uses.

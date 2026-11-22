@@ -3,6 +3,14 @@
 Newest first. One entry per session where something non-trivial happened:
 date, what was done, what's left.
 
+## 2026-11-22 (later): headless PoB
+
+- Added headless Path of Building (`setup-pob.sh`, `poe1/pob_driver.lua`,
+  `pobcalc.py`, `whatif.py`) and the `calc`, `try`, `gems`, `tree` commands, plus
+  `trade item --live --calc`. Verified against the owner's build: 41/41 stats match.
+- The owner plays Hierophant mana-stacking Shock Nova of Procession (Covens) and
+  is following a poe.ninja character. Waiting for that character's PoB export to `compare`.
+
 ## 2026-11-22: poe1-build-helper
 
 - Built `projects/poe1-build-helper`: PoB code decode/summary, trade queries and
