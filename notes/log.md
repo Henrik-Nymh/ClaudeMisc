@@ -3,6 +3,16 @@
 Newest first. One entry per session where something non-trivial happened:
 date, what was done, what's left.
 
+## 2026-11-23: shield shopping (6 div budget)
+
+- Added `trade best` (PoB-weighted search per slot), `try --unique/--nodes`,
+  `tree --nodes`. Prices come from poe.ninja's public economy API.
+- Shield findings (ref config, with Sanctuary + Safeguard): Chalice of Horrors 1c
+  +49% EHP; Dawnbreaker 3c +71% EHP, but it needs 159 Str (the Might node fixes
+  that); Svalinn 30 div +130%; a good rare Titanium Spirit Shield is about +58% EHP
+  with no DPS loss. All the unique options cost ~15% DPS (Ordered Fate).
+- Left: live trade still needs the owner's machine (no Remote Control folder yet).
+
 ## 2026-11-22 (later): headless PoB
 
 - Added headless Path of Building (`setup-pob.sh`, `poe1/pob_driver.lua`,
