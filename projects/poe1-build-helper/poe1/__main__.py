@@ -218,6 +218,55 @@ def _node_ids(xml: str, spec: str) -> list[int]:
     return [by_name[s.lower()] for s in names]
 
 
+def _apply_config(xml: str, config_src: str | None) -> str:
+    """Use another build's PoB Config (and bandit/pantheon) for a like-for-like comparison."""
+    if not config_src:
+        return xml
+    import copy
+    import xml.etree.ElementTree as ET
+    mine, other = ET.fromstring(xml), ET.fromstring(pobcode.load(config_src))
+    if mine.find("Config") is not None:
+        mine.remove(mine.find("Config"))
+    if other.find("Config") is not None:
+        mine.append(copy.deepcopy(other.find("Config")))
+    for attr in ("bandit", "pantheonMajorGod", "pantheonMinorGod"):
+        if other.find("Build") is not None and other.find("Build").get(attr):
+            mine.find("Build").set(attr, other.find("Build").get(attr))
+    return ET.tostring(mine, encoding="unicode")
+
+
+def cmd_trade_best(a):
+    xml = _apply_config(pobcode.load(a.source), a.config_from)
+    category = a.mods_category or whatif.SLOT_MODS_CATEGORY.get(a.slot) or \
+        ("Shield" if a.slot.startswith("Weapon 2") else None)
+    if not category:
+        raise ValueError("can't tell the item category for this slot; pass --mods-category (e.g. Shield, Helmet)")
+    ids = _node_ids(xml, a.nodes) if a.nodes else None
+    base, blank, rows = whatif.mod_values(xml, a.slot, a.base, category, ids, a.objective)
+    print(f"Blank rare {a.base} in {a.slot}" + (f" + {a.nodes}" if a.nodes else "")
+          + f" vs current: {pobcalc.delta_line(base, blank)}\n")
+    print(f"{'mod (mid roll)':60}{'DPS%':>7}{'EHP%':>7}")
+    for r in rows[:a.top]:
+        print(f"{r['line'][:60]:60}{r['dps']:>7.1f}{r['ehp']:>7.1f}")
+    index = trade.StatIndex(gamedata.load_trade_stats())
+    filters, seen = [], set()
+    for r in rows:
+        if r["score"] < 1.0 or r["id"] not in index.by_id or r["text"] in seen:
+            continue
+        w = r["score"] / r["value"] * (0.5 if "while Focused" in r["text"] else 1)
+        seen.add(r["text"])
+        filters.append(trade.StatFilter(r["id"], weight=round(w, 3), label=r["text"]))
+        if len(filters) >= a.max_filters:
+            break
+    q = trade.Query(category=trade.slot_category(a.slot, buildmod.parse_item("x", whatif.blank_rare(a.base)))
+                    or None, rarity="nonunique", weight_stats=filters, weight_min=a.weight_min)
+    if q.category is None:
+        q.base = a.base
+    _common_query_opts(q, a)
+    print()
+    _emit(q, index, a)
+
+
 def cmd_try(a):
     xml = pobcode.load(a.source)
     actions = [{"type": "item", "slot": a.slot, "text": _read_item_text(s)} for s in a.item or []]
@@ -377,6 +426,20 @@ def main(argv: list[str] | None = None) -> int:
     s.add_argument("--calc", action="store_true", help="with --live: rate each listing with headless PoB")
     add_trade_opts(s)
     s.set_defaults(func=cmd_trade_item)
+
+    s = tsub.add_parser("best", help="PoB-weighted search: value every mod that can roll in a slot")
+    s.add_argument("source", help=src_help)
+    s.add_argument("--slot", required=True, help="e.g. 'Weapon 2', Helmet, Belt")
+    s.add_argument("--base", required=True, help="base type to test on, e.g. 'Titanium Spirit Shield'")
+    s.add_argument("--mods-category", help="PoB mod category (Shield, Helmet, Chest, Gloves, Boots, Belt, Ring, Amulet)")
+    s.add_argument("--nodes", help="also allocate these passives: 'Sanctuary + Safeguard'")
+    s.add_argument("--config-from", help="use this build's PoB config (fair comparison)")
+    s.add_argument("--objective", choices=["balanced", "dps", "ehp"], default="balanced")
+    s.add_argument("--weight-min", type=float, default=20, help="min weighted sum (~%% points of DPS+EHP)")
+    s.add_argument("--max-filters", type=int, default=18)
+    s.add_argument("--top", type=int, default=20)
+    add_trade_opts(s)
+    s.set_defaults(func=cmd_trade_best)
 
     s = sub.add_parser("calc", help="recalculate the build with headless PoB (checks against export)")
     s.add_argument("source", help=src_help)

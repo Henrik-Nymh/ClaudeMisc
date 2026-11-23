@@ -69,6 +69,9 @@ python3 -m poe1 gems build.txt --change "swap:main:Power Charge On Critical=Insp
     --change "add:3:Enlighten@3/0" --combine
 python3 -m poe1 tree build.txt --max-path 5         # DPS/EHP per point of nearby notables, weakest allocated
 python3 -m poe1 trade item build.txt --slot Gloves --live --calc   # rank live listings by PoB delta
+python3 -m poe1 trade best build.txt --slot "Weapon 2" --base "Titanium Spirit Shield" \
+    --nodes "Sanctuary + Safeguard" --config-from other.txt --max-price 4 --currency divine
+                                                    # value every mod that can roll there -> weighted search
 ```
 
 Item text can be in-game Ctrl+C text or PoB's format, given as a file, `-`, or
