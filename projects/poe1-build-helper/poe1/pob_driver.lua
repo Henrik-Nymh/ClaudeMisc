@@ -140,6 +140,19 @@ local result = { base = pick(build.calcsTab.mainOutput), actions = {}, variants 
                  unresolved_gems = unresolvedGems() }
 local calcFunc = build.calcsTab:GetMiscCalculator()
 
+-- Optional `ids` on item/unique actions: also allocate these nodes (with paths).
+local function pathsFor(ids)
+  if not ids then return nil end
+  local set = {}
+  for _, id in ipairs(ids) do
+    local node = build.spec.nodes[id]
+    if node and not node.alloc and node.path then
+      for _, p in ipairs(node.path) do set[p] = true end
+    end
+  end
+  return set
+end
+
 local function nodeSet(list)
   local set, n = {}, 0
   for _, node in ipairs(list) do
@@ -197,7 +210,7 @@ for i, act in ipairs(req.actions or {}) do
       local item = new("Item"):Item(entry.raw)
       item:NormaliseQuality()
       item:BuildModList()
-      return { stats = pick(calcFunc({ repSlotName = act.slot, repItem = item })), name = item.name }
+      return { stats = pick(calcFunc({ repSlotName = act.slot, repItem = item, addNodes = pathsFor(act.ids) })), name = item.name }
     elseif act.type == "tree_power" then
       local maxPath = act.max_path or 5
       local list = {}
@@ -222,7 +235,7 @@ for i, act in ipairs(req.actions or {}) do
       if not item.base then error("PoB could not parse the item (unknown base type?)") end
       item:NormaliseQuality()
       item:BuildModList()
-      local out = calcFunc({ repSlotName = act.slot, repItem = item })
+      local out = calcFunc({ repSlotName = act.slot, repItem = item, addNodes = pathsFor(act.ids) })
       return { stats = pick(out), name = item.name }
     elseif act.type == "unequip" then
       local out = calcFunc({ repSlotName = act.slot, repItem = nil })

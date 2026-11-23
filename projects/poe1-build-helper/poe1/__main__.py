@@ -207,10 +207,25 @@ def cmd_calc(a):
         print(f"{k:34}{'-' if h is None else f'{h:,.2f}':>16}{'-' if e is None else f'{e:,.2f}':>16}{flag}")
 
 
+def _node_ids(xml: str, spec: str) -> list[int]:
+    """'Sanctuary + Safeguard' -> node ids (from the build's tree version)."""
+    tree = _tree_for(buildmod.parse_build(xml), None) or {"nodes": {}}
+    by_name = {n["name"].lower(): int(i) for i, n in tree["nodes"].items() if not n.get("ascendancy")}
+    names = [s.strip() for s in spec.split("+") if s.strip()]
+    missing = [s for s in names if s.lower() not in by_name]
+    if missing:
+        raise ValueError(f"unknown node(s): {', '.join(missing)}")
+    return [by_name[s.lower()] for s in names]
+
+
 def cmd_try(a):
     xml = pobcode.load(a.source)
     actions = [{"type": "item", "slot": a.slot, "text": _read_item_text(s)} for s in a.item or []]
     actions += [{"type": "unique", "slot": a.slot, "name": u} for u in a.unique or []]
+    if a.nodes:
+        ids = _node_ids(xml, a.nodes)
+        for act in actions:
+            act["ids"] = ids
     if a.unequip:
         actions.append({"type": "unequip", "slot": a.slot})
     if not actions:
@@ -373,6 +388,7 @@ def main(argv: list[str] | None = None) -> int:
     s.add_argument("--item", action="append", help="item text (in-game Ctrl+C or PoB format), file, or -")
     s.add_argument("--unique", action="append", help="a unique from PoB's database by name, e.g. Svalinn")
     s.add_argument("--unequip", action="store_true", help="also show the effect of an empty slot")
+    s.add_argument("--nodes", help="also allocate these passives: 'Sanctuary + Safeguard'")
     s.set_defaults(func=cmd_try)
 
     s = sub.add_parser("gems", help="DPS/EHP change from gem changes (headless PoB)")
