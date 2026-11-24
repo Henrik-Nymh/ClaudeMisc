@@ -3,6 +3,15 @@
 Newest first. One entry per session where something non-trivial happened:
 date, what was done, what's left.
 
+## 2026-11-24: shield bought, next steps
+
+- Owner bought the rare shield (Armageddon Bastion) and took Sanctuary, Safeguard
+  and the block masteries: EHP 32k -> 79k, block 61/68 (with the reference config).
+- Next by PoB value: Ravenous Passion with +1 max power charge (+30% DPS); The Red
+  Nightmare in the empty socket 26196 (+20% EHP, 0 points); Arcane Guarding (3p, +17% EHP).
+  Svalinn is now only +11% EHP, so it's no longer worth it.
+- The owner's PoB config is still empty; they should fill it in.
+
 ## 2026-11-23: shield shopping (6 div budget)
 
 - Added `trade best` (PoB-weighted search per slot), `try --unique/--nodes`,
