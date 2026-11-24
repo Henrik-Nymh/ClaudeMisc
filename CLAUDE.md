@@ -66,3 +66,6 @@ quirks, gotchas, decisions and why). Keep each one to a line or two.
 - PoB numbers depend heavily on each build's Config tab. Before comparing builds
   or judging gem swaps, check the config (e.g. `usePowerCharges`). Swap one build's
   `<Config>` into the other for a fair comparison.
+- poe.ninja's Divine `chaosEquivalent` can lag the in-game Currency Exchange
+  (148 vs 174 on 2026-11-24). Ask the owner for the current rate before converting
+  their currency. For item prices, use poe.ninja's own `divineValue`.
