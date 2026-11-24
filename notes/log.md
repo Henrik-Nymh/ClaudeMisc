@@ -3,6 +3,15 @@
 Newest first. One entry per session where something non-trivial happened:
 date, what was done, what's left.
 
+## 2026-11-24 (later): Red Nightmare in
+
+- The owner added a Foulborn The Red Nightmare in socket 26196 (+26% EHP; it beats the
+  regular version thanks to its chaos-res mutation) and took Might for Str (needed:
+  93 Str without it vs 108 required). With the reference config: EHP 112k, block 75/71, chaos 75.
+- The owner dropped "Mana and Arcane Surge Effect" for Might, costing -6% DPS. Suggested
+  respecing Faith and Steel (-0.9% EHP) to take it back. Attack block is capped, so the
+  focus is now DPS: Ravenous Passion with +1 power charge (+30%).
+
 ## 2026-11-24: shield bought, next steps
 
 - Owner bought the rare shield (Armageddon Bastion) and took Sanctuary, Safeguard
