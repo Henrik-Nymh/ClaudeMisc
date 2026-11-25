@@ -270,7 +270,8 @@ def cmd_trade_best(a):
 def cmd_try(a):
     xml = pobcode.load(a.source)
     actions = [{"type": "item", "slot": a.slot, "text": _read_item_text(s)} for s in a.item or []]
-    actions += [{"type": "unique", "slot": a.slot, "name": u} for u in a.unique or []]
+    actions += [{"type": "unique", "slot": a.slot, "name": u, "add_implicits": a.add_implicit or []}
+                for u in a.unique or []]
     if a.nodes:
         ids = _node_ids(xml, a.nodes)
         for act in actions:
@@ -450,6 +451,7 @@ def main(argv: list[str] | None = None) -> int:
     s.add_argument("--slot", required=True, help="e.g. Helmet, 'Ring 1', 'Weapon 1'")
     s.add_argument("--item", action="append", help="item text (in-game Ctrl+C or PoB format), file, or -")
     s.add_argument("--unique", action="append", help="a unique from PoB's database by name, e.g. Svalinn")
+    s.add_argument("--add-implicit", action="append", help="add an implicit to --unique items, e.g. '+1 to Maximum Power Charges'")
     s.add_argument("--unequip", action="store_true", help="also show the effect of an empty slot")
     s.add_argument("--nodes", help="also allocate these passives: 'Sanctuary + Safeguard'")
     s.set_defaults(func=cmd_try)

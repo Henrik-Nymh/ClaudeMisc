@@ -207,7 +207,15 @@ for i, act in ipairs(req.actions or {}) do
         end
       end
       if not entry then error("unique not found: " .. act.name) end
-      local item = new("Item"):Item(entry.raw)
+      local raw = entry.raw
+      if act.add_implicits and #act.add_implicits > 0 then
+        -- normalise to PoB's own format (has "Implicits: N"), then add lines
+        raw = new("Item"):Item(entry.raw):BuildRaw()
+        raw = raw:gsub("Implicits: (%d+)\n", function(n)
+          return "Implicits: " .. (tonumber(n) + #act.add_implicits) .. "\n" .. table.concat(act.add_implicits, "\n") .. "\n"
+        end, 1)
+      end
+      local item = new("Item"):Item(raw)
       item:NormaliseQuality()
       item:BuildModList()
       return { stats = pick(calcFunc({ repSlotName = act.slot, repItem = item, addNodes = pathsFor(act.ids) })), name = item.name }
