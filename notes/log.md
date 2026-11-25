@@ -3,6 +3,15 @@
 Newest first. One entry per session where something non-trivial happened:
 date, what was done, what's left.
 
+## 2026-11-25 (later): Ravenous Passion in
+
+- The owner bought Ravenous Passion with +1 PC (+47 Str, 10 Rage) and respecced Might to
+  Faith and Steel. With the reference config: DPS 27.4M -> 35.6M, EHP 112k -> 107k, res capped,
+  chaos 55. Since the start: DPS 30.0M -> 35.6M, EHP 33.6k -> 106.9k.
+- The owner must set Rage = 30 in the PoB config, or PoB shows no gain from RP.
+- Next: tree points (Annihilation +11%, Arcane Guarding +16% EHP, Heart of Thunder,
+  Heart and Soul). The reference's belt and gloves are now downgrades (resistances).
+
 ## 2026-11-25: helmet options, config
 
 - Unique helmet scan with an added "+1 to Maximum Power Charges" implicit (new driver
