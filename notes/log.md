@@ -3,6 +3,15 @@
 Newest first. One entry per session where something non-trivial happened:
 date, what was done, what's left.
 
+## 2026-11-25: helmet options, config
+
+- Unique helmet scan with an added "+1 to Maximum Power Charges" implicit (new driver
+  option). Corrupted PC helmets available to the owner: Memory Vault 0.1 div (+9% DPS,
+  +4% EHP); Ravenous Passion ~14 div (+30% DPS, or +38% if its Str lets Might go).
+- The owner respecced Faith and Steel to the mana node (+6.3% DPS) and started filling
+  in the PoB config. Biggest missing toggles: intensifyIntensity 4 (+64% DPS),
+  Focused (+12%), Enemy Unnerved (+10%), Enemy Shocked (+5%).
+
 ## 2026-11-24 (later): Red Nightmare in
 
 - The owner added a Foulborn The Red Nightmare in socket 26196 (+26% EHP; it beats the
