@@ -49,7 +49,8 @@ Durable facts worth knowing in every future session go here (environment
 quirks, gotchas, decisions and why). Keep each one to a line or two.
 
 - Cloud sessions use the personal "ClaudeMisc" environment, which allows
-  www.pathofexile.com, poe.ninja and pobb.in. GitHub (incl. raw) is always reachable.
+  www.pathofexile.com, poe.ninja, pobb.in and a few other hosts (check get_environment).
+  GitHub (incl. raw) is always reachable.
 - pathofexile.com APIs (trade, character-window) return 403 from cloud IPs.
   Don't probe repeatedly: GGG restricts clients with many 4xx responses. Live
   trade has to run on the owner's machine.
@@ -69,3 +70,7 @@ quirks, gotchas, decisions and why). Keep each one to a line or two.
 - poe.ninja's Divine `chaosEquivalent` can lag the in-game Currency Exchange
   (148 vs 174 on 2026-11-24). Ask the owner for the current rate before converting
   their currency. For item prices, use poe.ninja's own `divineValue`.
+- The owner's Outlook can be reachable through the Microsoft 365 connector. `read_resource` on a
+  PDF attachment returns extracted text only, not the original file.
+- Headless Playwright handles JavaScript-only public sites. Its `page.request` ignores the egress
+  proxy (DNS fails), so download files with an in-page `fetch` instead.

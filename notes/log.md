@@ -3,6 +3,11 @@
 Newest first. One entry per session where something non-trivial happened:
 date, what was done, what's left.
 
+## 2026-11-28: private matter
+
+- Helped the owner with a private matter. The work lives in a separate private repository and is
+  deliberately not described here.
+
 ## 2026-11-25 (later): Ravenous Passion in
 
 - The owner bought Ravenous Passion with +1 PC (+47 Str, 10 Rage) and respecced Might to
